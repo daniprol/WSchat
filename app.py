@@ -4,7 +4,14 @@ import wtform_fields as wtff
 from flask_sqlalchemy import SQLAlchemy
 from models import User
 from passlib.hash import pbkdf2_sha256
+from flask_login import LoginManager
 
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+# basedir = os.path.abspath(os.path.dirname(__file__))
+# load_dotenv(os.path.join(basedir, '.env'))
 
 app = Flask(__name__)
 # Secret key to sign the cookies in the flask sessions
@@ -13,9 +20,12 @@ app.secret_key = 'replace later'
 
 
 # CONFIGURA THE POSGRESQL:
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://ucwfgmqekuecmj:ad6d850578f0432d47e13830ea6cb2d4acd6305dc2a96c0011433f222580c7f3@ec2-99-81-238-134.eu-west-1.compute.amazonaws.com:5432/d24a6roloe9vos'
-
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_URI')
 db = SQLAlchemy(app)
+
+# Configure flask login:
+# login = LoginManager(app)
+# login.init_app(app)
 
 
 @app.route('/', methods=['GET', 'POST'])

@@ -4,3 +4,6 @@ __pycache__/
 
 # Default folder where Flask saves the sessions files:
 flask_session/
+
+# Environment variables:
+.env
