@@ -1,10 +1,10 @@
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, flash
 # from wtform_fields import *
 import wtform_fields as wtff
 from flask_sqlalchemy import SQLAlchemy
 from models import User
 from passlib.hash import pbkdf2_sha256
-from flask_login import LoginManager
+from flask_login import LoginManager, login_user, current_user, login_required, logout_user
 
 import os
 from dotenv import load_dotenv
@@ -24,13 +24,24 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_URI')
 db = SQLAlchemy(app)
 
 # Configure flask login:
-# login = LoginManager(app)
-# login.init_app(app)
+# TODO: check if we need to pass the app as an argument here!
+login = LoginManager(app)
+login.init_app(app)
+
+# Create the function to load a /user from the id:
+
+
+@login.user_loader
+def load_user(id):
+    # User.query.filter_by(id=id).first()
+    # We are storing id's as integers in the db!
+    # We don't need to use the .first() method because ids are unique
+    return User.query.get(int(id))
 
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-
+    print(current_user)
     # Instantiate the form:
     reg_form = wtff.RegistrationForm()
 
@@ -57,6 +68,10 @@ def index():
         db.session.add(user)
         db.session.commit()
 
+        # Flash message for succesful registration:
+        flash(
+            f'Congratulations {username}, your are now a member of our beloved community!')
+
         return redirect(url_for('login'))
     # else:
     #     return 'Validation error!'
@@ -79,10 +94,39 @@ def login():
         # elif user_object and user_object.password != login_form.password.data:
         #     return 'Username or password incorrect. Please, try again!'
         # else:
-        return 'Login was successful!'
+
+        # TODO: we are doing 2 queries for each login (1 for validation and 1 here). This inefficiency should be removed
+        user_object = User.query.filter_by(
+            username=login_form.username.data).first()
+        login_user(user_object)
+
+        print(current_user.get_id())
+        # How do we know for sure that the user is logged in? User 'current_user'
+        if current_user.is_authenticated:
+            flash(f'You are now logged in {user_object.username}!')
+            # print(current_user.__dict__)
+            return redirect(url_for('index'))
+            # return 'Login was successful!'
+        else:
+            flash('There was a problem in the login process. Please try again!')
 
     # We also return this for GET requests!
     return render_template('login.html', form=login_form)
+
+
+@app.route('/chat/', methods=['GET', 'POST'])
+@login_required
+def chat():
+    print(current_user)
+    return 'You have accessed a protected route!'
+
+
+@app.route('/logout/', methods=['GET'])
+def logout():
+    print(current_user)
+    logout_user()
+    flash('You have been logged out!')
+    return redirect(url_for('index'))
 
 
 if __name__ == "__main__":
